@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>PALBot</title>
+
+  <link rel="icon" type="image/x-icon" href="/static/favicon.jpg">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='winbox.min.css') }}">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+  <script src="{{url_for('static', filename='winbox.min.js')}}"></script>
+</head>
+<body>
+  <img style="position: absolute; top: 0; left: 0; margin-left: 20px;" src="../static/logo.jpg" height="90px;">
+  <button onclick="refresh()" style="position: absolute; top: 0; right: 0; margin: 10px;" type="button" class="btn btn-outline-secondary">Begin a new chat</button>
+  <div class="column">
+    <div id="mchat-area" class="mchat-area">
+        <p class="bot-message"><small><strong> PALBot: Welcome to PALBot, your ultimate AI teacher! How can I help you today!</strong></small></p>
+    </div>
+    <div id="general-container" class="window-container">
+        <div class="cont" id="general-content">
+            <h1 class="lead" style="font-size: 32px; margin: 20px;">PALBot Session</h1>
+            <div id="chat-area" class="chat-area"></div>
+            <div style="margin-left: 20px;" id="chat-form" class="chat-form">
+                <div class="input-group mb-3">
+                  <input style="width: 35vw;" type="text" name="message" class="form-control" id="chat-input"
+                    placeholder="Chat with PALBot">
+                    <button id="chat_send_button" class="btn btn-secondary" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+  </div>
+</body>
+<script>
+const chatArea = document.getElementById('chat-area');
+const mainChatArea = document.getElementById('mchat-area');
+var state = ""
+var modal = false;
+var recButtons = `<div class="main">
+            <button onclick="generalModal()" type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Ask our chatbot any general questions">General Questions</button>
+            <button onclick="materialType()" type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Upload text, PDFs, and links and have it taught to you">Upload Material</button>
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Create flashcards and be taught by PALBot">Review Terms</button>
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Test yourself in a given subject">Quiz Yourself</button>
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Study a subject, assisted with our AI teacher">Learn</button>
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Be provided homework and study packets by our AI teacher">Homework</button>
+        </div>`
+
+var materialRecButtons = `<p class="bot-message"><small><strong> PALBot: What would you like to do with your newly uploaded material?</strong></small></p>
+    <div class="materialRec">
+        <button onclick="sendMaterialType(0)" type="button" class="btn btn-outline-primary">Quiz me</button>
+        <button onclick="sendMaterialType(1)" type="button" class="btn btn-outline-primary">Teach me</button>
+        <button onclick="cancelMaterialRec()" type="button" class="btn btn-outline-danger">Cancel</button>
+    </div>`
+mainChatArea.innerHTML += recButtons
+// var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+// var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+//     return new bootstrap.Tooltip(tooltipTriggerEl)
+// })
+function refresh(){
+    mainChatArea.innerHTML = ""
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Welcome to PALBot, your ultimate AI teacher! How can I help you today!</strong></small></p>`
+    mainChatArea.innerHTML += recButtons
+}
+function generalModal(){
+    if (modal == false){
+        cancelButtons("main")
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Opening window...</strong></small></p>`
+        modal = true
+        var winbox = new WinBox({
+            mount: document.getElementById("general-content"),
+            title: "General Chat",
+            x: "right",
+            y: "center",
+            width: window.innerWidth/2,
+            height: window.innerHeight,
+            border: 4,
+            background: "#005b96",
+            hidden: false,
+            onclose: function () {
+                modal = false
+                chatArea.innerHTML = ""
+                mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Ended session...</strong></small></p>`
+                mainChatArea.innerHTML += recButtons;
+                fetch("/api/messages", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ message: "END"}),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Data:", data)
+                    
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                });
+            }
+
+        });
+    } else {
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please close all windows before starting a new one...</strong></small></p>`
+    }
+
+}
+
+function sendMessage(){
+    let message = document.getElementById('chat-input').value;
+    chatArea.innerHTML += `<p class="user-message"> User: ${message}</p>`
+    fetch("/api/messages", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: message }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Data:", data)
+        chatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: ${data.response}</strong></small></p>`
+    })
+    .catch(error => {
+        console.error("Error:", error);
+    });
+    document.getElementById('chat-input').value = "";
+}
+
+function cancelButtons(name){
+    const materialDivs = document.getElementsByClassName(name);
+
+    for (let i = 0; i < materialDivs.length; i++) {
+        const materialDiv = materialDivs[i];
+
+        const buttons = materialDiv.getElementsByTagName('*');
+        for (let j = 0; j < buttons.length; j++) {
+            buttons[j].disabled = true;
+        }
+    }
+}
+function materialType(){
+    cancelButtons("main")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: How would you like to upload your material?</strong></small></p>
+    <div class="material">
+        <button onclick="pdf()" type="button" class="btn btn-outline-primary">.PDF File</button>
+        <button onclick="txt()" type="button" class="btn btn-outline-primary">.TXT File</button>
+        <button onclick="yt()" type="button" class="btn btn-outline-primary">YouTube Link</button>
+        <button onclick="pt()" type="button" class="btn btn-outline-primary">Paste Text</button>
+        <button onclick="cancelMaterial()" type="button" class="btn btn-outline-danger">Cancel</button>
+    </div>`
+}
+
+function cancelMaterial(){
+    cancelButtons("material")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Cancelled uploading of material...</strong></small></p>`
+    mainChatArea.innerHTML += recButtons;
+}
+
+function pdf(){
+    cancelButtons("material")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Click the button below to upload your PDF file</strong></small></p>`
+    mainChatArea.innerHTML += `<div class="pdf"><input id="file" class="pdf-input btn btn-outline-primary" name="file" type="file"/><button onclick="uploadPDF()" style="margin-left: 10px;" type="button" class="btn btn-outline-success">Upload</button><button onclick="cancelPDF()" style="margin-left: 10px;" type="button" class="btn btn-outline-danger">Cancel</button></div>`;
+}
+
+function uploadPDF(){
+    cancelButtons("pdf")
+    const fileInputs = document.getElementsByClassName('pdf-input');
+    const latestFileInput = fileInputs[fileInputs.length - 1];
+
+    const selectedFile = latestFileInput.files[0];
+
+    if (selectedFile) {
+        if (selectedFile.type === 'application/pdf') {
+            const formData = new FormData();
+            formData.append('content', selectedFile);
+            formData.append('type', 'PDF');
+            fetch('/api/material', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Server Response:', data);
+                mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: PDF uploaded successfully.</strong></small></p>`;
+                mainChatArea.innerHTML += materialRecButtons;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Sorry we caught an error, please try again.</strong></small></p>`;
+                pdf();
+            });
+        } else {
+            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please upload a PDF file.</strong></small></p>`;
+            pdf();
+        }
+    } else {
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: No file chosen.</strong></small></p>`;
+        pdf();
+    }
+}
+
+function cancelPDF(){
+    cancelButtons("pdf")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Cancelled uploading of PDF file...</strong></small></p>`
+    mainChatArea.innerHTML += recButtons;
+}
+
+function txt(){
+    cancelButtons("material")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Click the button below to upload your TXT file</strong></small></p>`
+    mainChatArea.innerHTML += `<div class="txt"><input id="file" class="txt-input btn btn-outline-primary" name="file" type="file"/><button onclick="uploadTXT()" style="margin-left: 10px;" type="button" class="btn btn-outline-success">Upload</button><button onclick="cancelTXT()" style="margin-left: 10px;" type="button" class="btn btn-outline-danger">Cancel</button></div>`;
+}
+
+function uploadTXT(){
+    cancelButtons("txt")
+    const fileInputs = document.getElementsByClassName('txt-input');
+    const latestFileInput = fileInputs[fileInputs.length - 1];
+
+    const selectedFile = latestFileInput.files[0];
+
+    if (selectedFile) {
+        if (selectedFile.type === 'text/plain') {
+            const formData = new FormData();
+            formData.append('content', selectedFile);
+            formData.append('type', 'TXT');
+
+            fetch('/api/material', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Server Response:', data);
+                mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: TXT uploaded successfully.</strong></small></p>`;
+                mainChatArea.innerHTML += materialRecButtons;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Sorry we caught an error, please try again.</strong></small></p>`;
+                txt();
+            });
+        } else {
+            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please upload a TXT file.</strong></small></p>`;
+            txt();
+        }
+    } else {
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: No file chosen.</strong></small></p>`;
+        txt();
+    }
+}
+
+function cancelTXT(){
+    cancelButtons("txt")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Cancelled uploading of TXT file...</strong></small></p>`
+    mainChatArea.innerHTML += recButtons;
+}
+
+function yt(){
+    cancelButtons("material")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Click the button below to paste in your YouTube link</strong></small></p>`
+    mainChatArea.innerHTML += `
+    <div style="min-width: 400px; width: 28vw;" class="yt input-group mb-3">
+        <input type="text" name="message" class="yt-input form-control"placeholder="YouTube Link">
+        <button onclick="uploadYT()" style="margin-right: 7px;" class="btn btn-outline-success">Upload</button>
+        <button class="btn btn-outline-danger" onclick="cancelYT()">Cancel</button>
+    </div>
+    `;
+}
+
+function cancelYT(){
+    cancelButtons("yt")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Cancelled YouTube link pasting...</strong></small></p>`
+    mainChatArea.innerHTML += recButtons;
+}
+
+function uploadYT(){
+    cancelButtons("yt")
+    const ytInputs = document.getElementsByClassName('yt-input');
+    const ytInput = ytInputs[ytInputs.length - 1].value;
+    const youtubeId = extractYouTubeId(ytInput);
+    console.log(youtubeId)
+    if(!youtubeId){
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please enter a valid YouTube video link and try again.</strong></small></p>`;
+        yt();
+    } else {
+        const formData = new FormData();
+        formData.append('content', youtubeId);
+        formData.append('type', 'YT');
+
+        fetch('/api/material', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Server Response:', data);
+            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: YouTube transcript uploaded successfully.</strong></small></p>`;
+            mainChatArea.innerHTML += materialRecButtons;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Sorry we caught an error, please try again.</strong></small></p>`;
+            yt();
+        });
+    }
+
+}
+
+function extractYouTubeId(ytInput) {
+    const regex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+
+    const match = ytInput.match(regex);
+
+    return match ? match[1] : null;
+}
+
+function pt(){
+    cancelButtons("material")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Paste your text and click the upload button</strong></small></p>`
+    mainChatArea.innerHTML += `
+    <div style="min-width: 400px; width: 40vw;" class="pt">
+        <textarea class="pt-input form-control" placeholder="Pasted Material" rows="10"></textarea>
+        <div style="margin-top: 10px;">
+            <button onclick="uploadPT()" style="margin-right: 7px;" class="btn btn-outline-success">Upload</button>
+            <button class="btn btn-outline-danger" onclick="cancelPT()">Cancel</button>
+        </div>
+    </div>
+    `;
+}
+
+function cancelPT(){
+    cancelButtons("pt")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Cancelled material text pasting...</strong></small></p>`
+    mainChatArea.innerHTML += recButtons;
+}
+
+function uploadPT(){
+    cancelButtons("pt")
+    const ptInputs = document.getElementsByClassName('pt-input');
+    const ptInput = ptInputs[ptInputs.length - 1].value;
+    if(!ptInput){
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please enter a valid YouTube video link and try again.</strong></small></p>`;
+        pt();
+    } else {
+        console.log(ptInput)
+        const formData = new FormData();
+        formData.append('content', ptInput);
+        formData.append('type', 'PT');
+
+        fetch('/api/material', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Server Response:', data);
+            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: YouTube transcript uploaded successfully.</strong></small></p>`;
+            mainChatArea.innerHTML += materialRecButtons;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Sorry we caught an error, please try again.</strong></small></p>`;
+            pt();
+        });
+    }
+
+}
+
+function cancelMaterialRec(){
+    cancelButtons("materialRec")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Cancelled upload material action...</strong></small></p>`
+    mainChatArea.innerHTML += recButtons;
+}
+
+function sendMaterialType(type){
+    cancelButtons("materialRec")
+    if(type==0){
+        type= "Quiz";
+    } else {
+        type="Teach";
+    }
+    const formData = new FormData();
+    formData.append('type', type);
+    fetch('/api/generate_material', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Server Response:', data);
+        if(data.message){
+            generalModal()
+            chatArea.innerHTML += `<p class="user-message"><small><strong> User: ${type} me</strong></small></p>`
+            chatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: ${data.message}</strong></small></p>`
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Sorry we caught an error, please try again.</strong></small></p>`;
+        mainChatArea.innerHTML += materialRecButtons;
+    });
+}
+
+</script>
+<style>
+body {
+  font-size: 18px;
+  margin-left: 30px;
+}
+
+.window-container {
+    display: none;
+}
+
+.mchat-area {
+    overflow-y: auto;
+    height: 80vh;
+    margin-top: 100px;
+}
+
+.chat-area {
+    overflow-y: auto;
+    height: 80vh;
+    padding: 20px;
+}
+
+
+.column{
+    width: 50vw;
+}
+.user-message {
+    color: black;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.bot-message {
+    margin-top: 10px;
+    color: #838383;
+}
+
+.chat-form {
+  margin-bottom: 10px;
+  width: 635px;
+  height: 50px;
+  position: absolute;
+  bottom: 0;
+}
+
+.chat-message {
+  margin-bottom: 15px;
+}
+
+
+</style>
