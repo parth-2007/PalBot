@@ -26,7 +26,6 @@ def chat_bot():
             messages=history
         )
         response = chat_completion.choices[0].message.content
-        print(history)
         history.append({"role":"assistant","content": response})
         conversation = [(history[i]["content"],history[i+1]["content"]) for i in range(0, len(history)-1, 2)]
         return jsonify({"response": response})

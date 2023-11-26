@@ -44,9 +44,8 @@ var recButtons = `<div class="main">
             <button onclick="generalModal()" type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Ask our chatbot any general questions">General Questions</button>
             <button onclick="materialType()" type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Upload text, PDFs, and links and have it taught to you">Upload Material</button>
             <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Create flashcards and be taught by PALBot">Review Terms</button>
-            <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Test yourself in a given subject">Quiz Yourself</button>
+            <button onclick="quizType()" type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Test yourself in a given subject">Quiz Yourself</button>
             <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Study a subject, assisted with our AI teacher">Learn</button>
-            <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Be provided homework and study packets by our AI teacher">Homework</button>
         </div>`
 
 var materialRecButtons = `<p class="bot-message"><small><strong> PALBot: What would you like to do with your newly uploaded material?</strong></small></p>
@@ -70,6 +69,7 @@ function generalModal(){
         cancelButtons("main")
         mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Opening window...</strong></small></p>`
         modal = true
+        chatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Hi! I am PalBot, feel free to ask me any general questions!</strong></small></p>`
         var winbox = new WinBox({
             mount: document.getElementById("general-content"),
             title: "General Chat",
@@ -405,6 +405,161 @@ function sendMaterialType(type){
     });
 }
 
+function quizType(){
+    var type = ""
+    cancelButtons("main")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: How would you like to be quizzed?</strong></small></p>
+    <div class="quizType">
+        <button value="Multiple Choice" type="button" class="btn btn-outline-primary">Multiple Choice</button>
+        <button value="True or False" type="button" class="btn btn-outline-primary">True or False</button>
+        <button value="Fill in the Blank" type="button" class="btn btn-outline-primary">Fill in the Blank</button>
+        <button value="No Preference" type="button" class="btn btn-outline-primary">No Preference</button>
+        <button onclick="cancelQuizType()" type="button" class="btn btn-outline-danger">Cancel</button>
+    </div>`
+
+    let buttons = document.querySelectorAll('.quizType button');
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            type=button.value;
+            if(type){
+                cancelButtons("quizType")
+                mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: How would you like the difficulty?</strong></small></p>
+                <div class="quizDifficulty">
+                    <button value="Beginner" type="button" class="btn btn-outline-primary">Beginner</button>
+                    <button value="Intermediate" type="button" class="btn btn-outline-primary">Intermediate</button>
+                    <button value="Advanced" type="button" class="btn btn-outline-primary">Advanced</button>
+                    <button value="Expert" type="button" class="btn btn-outline-primary">Expert</button>
+                    <button onclick="cancelQuizDifficulty()" type="button" class="btn btn-outline-danger">Cancel</button>
+                </div>`
+                buttons = document.querySelectorAll('.quizDifficulty button');
+                buttons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        difficulty=button.value;
+                        if(difficulty){
+                            cancelButtons("quizDifficulty")
+                            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: What subject would you like to be quizzed in?</strong></small></p>
+                            <div class="quizSubject">
+                                <button value="Math" type="button" class="btn btn-outline-primary">Math</button>
+                                <button value="Biology" type="button" class="btn btn-outline-primary">Biology</button>
+                                <button value="History" type="button" class="btn btn-outline-primary">History</button>
+                                <button value="English" type="button" class="btn btn-outline-primary">English</button>
+                                <button value="Other" type="button" class="btn btn-outline-primary">Other</button>
+                                <button onclick="cancelQuizSubject()" type="button" class="btn btn-outline-danger">Cancel</button>
+                            </div>`
+                            buttons = document.querySelectorAll('.quizSubject button');
+                            buttons.forEach(button => {
+                                button.addEventListener('click', function() {
+                                    subject=button.value;
+                                    if(subject && subject!="Other"){
+                                        cancelButtons("quizSubject")
+                                        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: How many questions would you like</strong></small></p>
+                                        <div style="width: 20vw;" class="quizNumber input-group mb-3">
+                                            <input min="1" max="50" type="number" class="number-input form-control" placeholder="15">
+                                            <button style="margin-right: 7px;" class="btn btn-outline-success">Submit</button>
+                                            <button onclick="cancelQuizNumber()" type="button" class="btn btn-outline-danger">Cancel</button>
+                                        </div>`
+                                        button = document.querySelector('.quizNumber button');
+                                        button.addEventListener('click', function() {
+                                            cancelButtons("quizNumber")
+                                            const numberInputs = document.getElementsByClassName('number-input');
+                                            number = numberInputs[numberInputs.length - 1].value;
+                                            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: How would you like to take your quiz?</strong></small></p>
+                                            <div class="final">
+                                                <button onclick="downloadPDF('${subject}', '${type}', '${difficulty}', ${number})" type="button" class="btn btn-outline-primary">Download PDF</button>
+                                                <button onclick="openWindow('${subject}', '${type}', '${difficulty}', ${number})" type="button" class="btn btn-outline-primary">Open PalBot Window</button>
+                                                <button onclick="cancelFinal()" type="button" class="btn btn-outline-danger">Cancel</button>
+                                            </div>`
+                                        })
+                                    }
+                                    else if(subject && subject=="Other"){
+                                        cancelButtons("quizSubject")
+                                        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please type out your subject</strong></small></p>
+                                        <div style="width: 20vw;" class="quizOther input-group mb-3">
+                                            <input class="subject-input form-control" placeholder="Subject">
+                                            <button style="margin-right: 7px;" class="btn btn-outline-success">Upload</button>
+                                            <button onclick="cancelQuizOther()" type="button" class="btn btn-outline-danger">Cancel</button>
+                                        </div>`
+                                        button = document.querySelector('.quizOther button');
+                                        button.addEventListener('click', function(){
+                                            cancelButtons("quizOther")
+                                            const subjectInputs = document.getElementsByClassName('subject-input');
+                                            subject = subjectInputs[subjectInputs.length - 1].value;
+                                            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: How many questions would you like</strong></small></p>
+                                            <div style="width: 20vw;" class="quizNumber input-group mb-3">
+                                                <input min="1" max="50" type="number" class="number-input form-control">
+                                                <button style="margin-right: 7px;" class="btn btn-outline-success">Submit</button>
+                                                <button onclick="cancelQuizNumber()" type="button" class="btn btn-outline-danger">Cancel</button>
+                                            </div>`
+                                            button = document.querySelector('.quizNumber button');
+                                            button.addEventListener('click', function() {
+                                                const numberInputs = document.getElementsByClassName('number-input');
+                                                number = numberInputs[numberInputs.length - 1].value;
+                                                cancelButtons("quizNumber")
+                                                mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: How would you like to take your quiz?</strong></small></p>
+                                                <div class="final">
+                                                    <button onclick="downloadPDF('${subject}', '${type}', '${difficulty}', ${number})" type="button" class="btn btn-outline-primary">Download PDF</button>
+                                                    <button onclick="openWindow('${subject}', '${type}', '${difficulty}', ${number})" type="button" class="btn btn-outline-primary">Open PalBot Window</button>
+                                                    <button onclick="cancelFinal()" type="button" class="btn btn-outline-danger">Cancel</button>
+                                                </div>`
+                                            })
+                                        })
+                                    }
+                                });
+                            });
+                        }
+                    });
+                });
+            }
+        });
+    });
+}
+
+function cancelQuizType(){
+    cancelButtons("quizType")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Cancelled quiz action...</strong></small></p>`
+    mainChatArea.innerHTML += recButtons;
+}
+
+function cancelQuizDifficulty(){
+    cancelButtons("quizDifficulty")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Cancelled quiz action...</strong></small></p>`
+    mainChatArea.innerHTML += recButtons;
+}
+
+function cancelQuizSubject(){
+    cancelButtons("quizSubject")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Cancelled quiz action...</strong></small></p>`
+    mainChatArea.innerHTML += recButtons;
+}
+
+
+function cancelQuizNumber(){
+    cancelButtons("quizNumber")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Cancelled quiz action...</strong></small></p>`
+    mainChatArea.innerHTML += recButtons;
+}
+
+function cancelQuizOther(){
+    cancelButtons("quizOther")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Cancelled quiz action...</strong></small></p>`
+    mainChatArea.innerHTML += recButtons;
+}
+
+function cancelFinal(){
+    cancelButtons("final")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Cancelled quiz action...</strong></small></p>`
+    mainChatArea.innerHTML += recButtons;
+}
+
+function downloadPDF(subject, type, difficulty, number){
+    cancelButtons("final")
+    console.log(subject, type, difficulty, number)
+}
+
+function openWindow(subject, type, difficulty, number){
+    cancelButtons("final")
+    console.log(subject, type, difficulty, number)
+}
 </script>
 <style>
 body {
