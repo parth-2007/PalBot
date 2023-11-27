@@ -1,9 +1,10 @@
-from flask import Flask, Request, Response, jsonify, render_template, request
+from flask import Flask, Request, Response, jsonify, render_template, request, send_file
 import requests
 import pandas as pd
 from pdfquery import PDFQuery
 import openai
 from youtube_transcript_api import YouTubeTranscriptApi 
+from fpdf import FPDF
 
 app = Flask(__name__)
 
@@ -89,6 +90,31 @@ def generate_material():
         response =  model(prompt)
 
     return jsonify({'message': response}), 200
+
+@app.route('/api/quiz_window', methods=['POST'])
+def quiz_window():
+    model("END")
+    sentence = request.form.get('sentence')
+    response = model(sentence)
+    response = response.replace('?', '?\n')
+    return jsonify({'message': response}), 200
+
+@app.route('/api/download_pdf', methods=['POST'])
+def download_pdf():
+    model("END")
+    sentence = request.form.get('sentence')
+    response = model(sentence)
+    response = response.replace('?', '?\n')
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, response)
+
+    pdf_path = 'PalBotQuiz.pdf'
+    pdf.output(pdf_path)
+
+    return send_file(pdf_path, as_attachment=True)
 
 @app.route("/")
 def home():

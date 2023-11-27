@@ -454,7 +454,7 @@ function quizType(){
                                         cancelButtons("quizSubject")
                                         mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: How many questions would you like</strong></small></p>
                                         <div style="width: 20vw;" class="quizNumber input-group mb-3">
-                                            <input min="1" max="50" type="number" class="number-input form-control" placeholder="15">
+                                            <input min="1" max="50" type="number" class="number-input form-control">
                                             <button style="margin-right: 7px;" class="btn btn-outline-success">Submit</button>
                                             <button onclick="cancelQuizNumber()" type="button" class="btn btn-outline-danger">Cancel</button>
                                         </div>`
@@ -553,12 +553,56 @@ function cancelFinal(){
 
 function downloadPDF(subject, type, difficulty, number){
     cancelButtons("final")
-    console.log(subject, type, difficulty, number)
+    var sentence = `Please generate a ${number} question packet with only ${type} problems at ${difficulty} difficulty in the ${subject} subject. No answers. Format it nicely.`
+    const formData = new FormData();
+    formData.append('sentence', sentence);
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please be patient, your quiz packet will be downloaded soon...</strong></small></p>`;
+    fetch('/api/download_pdf', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.blob())
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'output.pdf';
+        a.click();
+        window.URL.revokeObjectURL(url);
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Your quiz packet has been downloaded successfully!...</strong></small></p>`;
+        mainChatArea.innerHTML += recButtons
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Sorry we caught an error, please try again.</strong></small></p>`;
+        mainChatArea.innerHTML += recButtons
+    });
 }
 
 function openWindow(subject, type, difficulty, number){
     cancelButtons("final")
-    console.log(subject, type, difficulty, number)
+    var sentence = `Please generate a ${number} question quiz with only ${type} problems at ${difficulty} difficulty in the ${subject} subject. No answers. Format it nicely.`
+    const formData = new FormData();
+    formData.append('sentence', sentence);
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: This might take a while, please be patient...</strong></small></p>`;
+    fetch('/api/quiz_window', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Server Response:', data);
+        if(data.message){
+            generalModal()
+            chatArea.innerHTML = ""
+            chatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: ${data.message}</strong></small></p>`
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Sorry we caught an error, please try again.</strong></small></p>`;
+        mainChatArea.innerHTML += recButtons
+    });
 }
 </script>
 <style>
