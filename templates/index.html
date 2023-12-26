@@ -45,13 +45,15 @@ var recButtons = `<div class="main">
             <button onclick="materialType()" type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Upload text, PDFs, and links and have it taught to you">Upload Material</button>
             <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Create flashcards and be taught by PALBot">Review Terms</button>
             <button onclick="quizType()" type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Test yourself in a given subject">Quiz Yourself</button>
-            <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Study a subject, assisted with our AI teacher">Learn</button>
+            <button onclick="learnType()" type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Study a subject, assisted with our AI teacher">Learn</button>
         </div>`
 
 var materialRecButtons = `<p class="bot-message"><small><strong> PALBot: What would you like to do with your newly uploaded material?</strong></small></p>
     <div class="materialRec">
         <button onclick="sendMaterialType(0)" type="button" class="btn btn-outline-primary">Quiz me</button>
         <button onclick="sendMaterialType(1)" type="button" class="btn btn-outline-primary">Teach me</button>
+        <button onclick="sendMaterialType(2)" type="button" class="btn btn-outline-primary">Download Notes</button>
+        <button onclick="sendMaterialType(3)" type="button" class="btn btn-outline-primary">Download Quiz</button>
         <button onclick="cancelMaterialRec()" type="button" class="btn btn-outline-danger">Cancel</button>
     </div>`
 mainChatArea.innerHTML += recButtons
@@ -154,9 +156,65 @@ function materialType(){
     </div>`
 }
 
+function learnType(){
+    cancelButtons("main")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: What subject would you like to be quizzed in?</strong></small></p>
+    <div class="quizSubject">
+        <button value="Math" type="button" class="btn btn-outline-primary">Math</button>
+        <button value="Biology" type="button" class="btn btn-outline-primary">Biology</button>
+        <button value="History" type="button" class="btn btn-outline-primary">History</button>
+        <button value="English" type="button" class="btn btn-outline-primary">English</button>
+        <button value="Other" type="button" class="btn btn-outline-primary">Other</button>
+        <button onclick="cancelQuizSubject()" type="button" class="btn btn-outline-danger">Cancel</button>
+    </div>`
+    buttons = document.querySelectorAll('.quizSubject button');
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            subject=button.value;
+            if(subject && subject!="Other"){
+                cancelButtons("quizSubject")
+                mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: How would you like to study?</strong></small></p>
+                <div class="final">
+                    <button onclick="downloadNotes('${subject}')" type="button" class="btn btn-outline-primary">Generate Notes</button>
+                    <button onclick="openWindowLearn('${subject}')" type="button" class="btn btn-outline-primary">Open PalBot Window</button>
+                    <button onclick="cancelFinal()" type="button" class="btn btn-outline-danger">Cancel</button>
+                </div>`
+            }
+            else if(subject && subject=="Other"){
+                cancelButtons("quizSubject")
+                mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please type out your subject</strong></small></p>
+                <div style="width: 20vw;" class="quizOther input-group mb-3">
+                    <input class="subject-input form-control" placeholder="Subject">
+                    <button style="margin-right: 7px;" class="btn btn-outline-success">Upload</button>
+                    <button onclick="cancelQuizOther()" type="button" class="btn btn-outline-danger">Cancel</button>
+                </div>`
+                button = document.querySelector('.quizOther button');
+                button.addEventListener('click', function(){
+                    cancelButtons("quizOther")
+                    console.log("clciked")
+                    const subjectInputs = document.getElementsByClassName('subject-input');
+                    subject = subjectInputs[subjectInputs.length - 1].value;
+                    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: How would you like to study?</strong></small></p>
+                    <div class="final">
+                        <button onclick="downloadNotes('${subject}')" type="button" class="btn btn-outline-primary">Generate Notes</button>
+                        <button onclick="openWindowLearn('${subject}')" type="button" class="btn btn-outline-primary">Open PalBot Window</button>
+                        <button onclick="cancelFinal()" type="button" class="btn btn-outline-danger">Cancel</button>
+                    </div>`
+                })    
+            }
+        });
+    });
+}
+
 function cancelMaterial(){
     cancelButtons("material")
     mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Cancelled uploading of material...</strong></small></p>`
+    mainChatArea.innerHTML += recButtons;
+}
+
+function cancelLearn(){
+    cancelButtons("learn")
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Cancelled learn action...</strong></small></p>`
     mainChatArea.innerHTML += recButtons;
 }
 
@@ -343,7 +401,7 @@ function uploadPT(){
     const ptInputs = document.getElementsByClassName('pt-input');
     const ptInput = ptInputs[ptInputs.length - 1].value;
     if(!ptInput){
-        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please enter a valid YouTube video link and try again.</strong></small></p>`;
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please enter or paste your text.</strong></small></p>`;
         pt();
     } else {
         console.log(ptInput)
@@ -358,7 +416,7 @@ function uploadPT(){
         .then(response => response.json())
         .then(data => {
             console.log('Server Response:', data);
-            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: YouTube transcript uploaded successfully.</strong></small></p>`;
+            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Text uploaded successfully.</strong></small></p>`;
             mainChatArea.innerHTML += materialRecButtons;
         })
         .catch(error => {
@@ -380,29 +438,54 @@ function sendMaterialType(type){
     cancelButtons("materialRec")
     if(type==0){
         type= "Quiz";
-    } else {
+    } else if(type==1) {
         type="Teach";
+    } else if(type==2) {
+        type="NotesPDF";
+    } else if(type==3) {
+        type="QuizPDF";
     }
+
     const formData = new FormData();
     formData.append('type', type);
-    fetch('/api/generate_material', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Server Response:', data);
-        if(data.message){
-            generalModal()
-            chatArea.innerHTML += `<p class="user-message"><small><strong> User: ${type} me</strong></small></p>`
-            chatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: ${data.message}</strong></small></p>`
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Sorry we caught an error, please try again.</strong></small></p>`;
-        mainChatArea.innerHTML += materialRecButtons;
-    });
+    if(type<2){
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please be patient, this might take a while...</strong></small></p>`;
+        fetch('/api/generate_material', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Server Response:', data);
+            if(data.message){
+                generalModal()
+                chatArea.innerHTML += `<p class="user-message"><small><strong> User: ${type} me</strong></small></p>`
+                chatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: ${data.message}</strong></small></p>`
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Sorry we caught an error, please try again.</strong></small></p>`;
+            mainChatArea.innerHTML += materialRecButtons;
+        });
+    } else {
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please be patient, your packet will be downloaded soon...</strong></small></p>`;
+        fetch('/api/generate_material', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'PALBOT_Download.pdf';
+            a.click();
+            window.URL.revokeObjectURL(url);
+            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Your packet has been downloaded successfully!...</strong></small></p>`;
+            mainChatArea.innerHTML += recButtons
+        })
+    }
 }
 
 function quizType(){
@@ -566,7 +649,7 @@ function downloadPDF(subject, type, difficulty, number){
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'output.pdf';
+        a.download = 'PALBOT_Download.pdf';
         a.click();
         window.URL.revokeObjectURL(url);
         mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Your quiz packet has been downloaded successfully!...</strong></small></p>`;
@@ -582,6 +665,60 @@ function downloadPDF(subject, type, difficulty, number){
 function openWindow(subject, type, difficulty, number){
     cancelButtons("final")
     var sentence = `Please generate a ${number} question quiz with only ${type} problems at ${difficulty} difficulty in the ${subject} subject. No answers. Format it nicely.`
+    const formData = new FormData();
+    formData.append('sentence', sentence);
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: This might take a while, please be patient...</strong></small></p>`;
+    fetch('/api/quiz_window', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Server Response:', data);
+        if(data.message){
+            generalModal()
+            chatArea.innerHTML = ""
+            chatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: ${data.message}</strong></small></p>`
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Sorry we caught an error, please try again.</strong></small></p>`;
+        mainChatArea.innerHTML += recButtons
+    });
+}
+
+function downloadNotes(subject){
+    cancelButtons("final")
+    var sentence = `Please generate a 1-4 page notes packet on ${subject}. Format it nicely.`
+    const formData = new FormData();
+    formData.append('sentence', sentence);
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please be patient, your notes will be downloaded soon...</strong></small></p>`;
+    fetch('/api/download_pdf', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.blob())
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'PALBOT_Download.pdf';
+        a.click();
+        window.URL.revokeObjectURL(url);
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Your quiz packet has been downloaded successfully!...</strong></small></p>`;
+        mainChatArea.innerHTML += recButtons
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Sorry we caught an error, please try again.</strong></small></p>`;
+        mainChatArea.innerHTML += recButtons
+    });
+}
+
+function openWindowLearn(subject){
+    cancelButtons("final")
+    var sentence = `Please generate notes for ${subject}. Format it nicely.`
     const formData = new FormData();
     formData.append('sentence', sentence);
     mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: This might take a while, please be patient...</strong></small></p>`;

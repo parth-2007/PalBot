@@ -85,11 +85,43 @@ def generate_material():
     if(message == "Quiz"):
         prompt = "Test me on the passage below and ask at least 5 questions. \n" + text_content
         response =  model(prompt)
+
+        return jsonify({'message': response}), 200
     elif(message == "Teach"):
         prompt = "Teach me the passage below. \n" + text_content
         response =  model(prompt)
 
-    return jsonify({'message': response}), 200
+        return jsonify({'message': response}), 200
+    elif(message == "NotesPDF"):
+        prompt = "Please generate a 1-4 page notes packet based off the text below. Format it nicely.\n" + text_content
+        response =  model(prompt)
+
+        response = response.replace('?', '?\n')
+
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.multi_cell(0, 10, response)
+
+        pdf_path = 'PalBotQuiz.pdf'
+        pdf.output(pdf_path)
+
+        return send_file(pdf_path, as_attachment=True)
+    elif(message == "QuizPDF"):
+        prompt = "Please generate a 15 question with problems based off the text below. Format it nicely. \n" + text_content
+        response =  model(prompt)
+        response = response.replace('?', '?\n')
+
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.multi_cell(0, 10, response)
+
+        pdf_path = 'PalBotQuiz.pdf'
+        pdf.output(pdf_path)
+
+        return send_file(pdf_path, as_attachment=True)
+
 
 @app.route('/api/quiz_window', methods=['POST'])
 def quiz_window():
@@ -113,7 +145,6 @@ def download_pdf():
 
     pdf_path = 'PalBotQuiz.pdf'
     pdf.output(pdf_path)
-
     return send_file(pdf_path, as_attachment=True)
 
 @app.route("/")
