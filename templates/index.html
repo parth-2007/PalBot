@@ -25,9 +25,13 @@
             <div id="chat-area" class="chat-area"></div>
             <div style="margin-left: 20px;" id="chat-form" class="chat-form">
                 <div class="input-group mb-3">
-                  <input style="width: 35vw;" type="text" name="message" class="form-control" id="chat-input"
+                  <input style="width: 25vw;" type="text" name="message" class="form-control" id="chat-input"
                     placeholder="Chat with PALBot">
                     <button id="chat_send_button" class="btn btn-secondary" onclick="sendMessage()">Send</button>
+                
+                    <div id="loader" style="margin-left: 20px; border-radius: 1000px; margin-top: 2px; visibility: hidden;" class="spinner-grow text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -43,7 +47,6 @@ var modal = false;
 var recButtons = `<div class="main">
             <button onclick="generalModal()" type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Ask our chatbot any general questions">General Questions</button>
             <button onclick="materialType()" type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Upload text, PDFs, and links and have it taught to you">Upload Material</button>
-            <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Create flashcards and be taught by PALBot">Review Terms</button>
             <button onclick="quizType()" type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Test yourself in a given subject">Quiz Yourself</button>
             <button onclick="learnType()" type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Study a subject, assisted with our AI teacher">Learn</button>
         </div>`
@@ -57,10 +60,6 @@ var materialRecButtons = `<p class="bot-message"><small><strong> PALBot: What wo
         <button onclick="cancelMaterialRec()" type="button" class="btn btn-outline-danger">Cancel</button>
     </div>`
 mainChatArea.innerHTML += recButtons
-// var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-// var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-//     return new bootstrap.Tooltip(tooltipTriggerEl)
-// })
 function refresh(){
     mainChatArea.innerHTML = ""
     mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Welcome to PALBot, your ultimate AI teacher! How can I help you today!</strong></small></p>`
@@ -114,6 +113,7 @@ function generalModal(){
 function sendMessage(){
     let message = document.getElementById('chat-input').value;
     chatArea.innerHTML += `<p class="user-message"> User: ${message}</p>`
+    document.getElementById('loader').style.visibility = "visible"
     fetch("/api/messages", {
         method: "POST",
         headers: {
@@ -125,6 +125,7 @@ function sendMessage(){
     .then(data => {
         console.log("Data:", data)
         chatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: ${data.response}</strong></small></p>`
+        document.getElementById('loader').style.visibility = "hidden"
     })
     .catch(error => {
         console.error("Error:", error);
@@ -158,7 +159,7 @@ function materialType(){
 
 function learnType(){
     cancelButtons("main")
-    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: What subject would you like to be quizzed in?</strong></small></p>
+    mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: What subject would you like to learn?</strong></small></p>
     <div class="quizSubject">
         <button value="Math" type="button" class="btn btn-outline-primary">Math</button>
         <button value="Biology" type="button" class="btn btn-outline-primary">Biology</button>
@@ -482,7 +483,7 @@ function sendMaterialType(type){
             a.download = 'PALBOT_Download.pdf';
             a.click();
             window.URL.revokeObjectURL(url);
-            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Your packet has been downloaded successfully!...</strong></small></p>`;
+            mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Your packet has been successfully downloaded!...</strong></small></p>`;
             mainChatArea.innerHTML += recButtons
         })
     }
@@ -652,7 +653,7 @@ function downloadPDF(subject, type, difficulty, number){
         a.download = 'PALBOT_Download.pdf';
         a.click();
         window.URL.revokeObjectURL(url);
-        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Your quiz packet has been downloaded successfully!...</strong></small></p>`;
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Your quiz packet has been successfully downloaded!...</strong></small></p>`;
         mainChatArea.innerHTML += recButtons
     })
     .catch(error => {
@@ -706,7 +707,7 @@ function downloadNotes(subject){
         a.download = 'PALBOT_Download.pdf';
         a.click();
         window.URL.revokeObjectURL(url);
-        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Your quiz packet has been downloaded successfully!...</strong></small></p>`;
+        mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Your quiz packet has been successfully downloaded!...</strong></small></p>`;
         mainChatArea.innerHTML += recButtons
     })
     .catch(error => {
