@@ -13,7 +13,6 @@
   <script src="{{url_for('static', filename='winbox.min.js')}}"></script>
 </head>
 <body>
-  <img style="position: absolute; top: 0; left: 0; margin-left: 20px;" src="../static/logo.jpg" height="90px;">
   <button onclick="refresh()" style="position: absolute; top: 0; right: 0; margin: 10px;" type="button" class="btn btn-outline-secondary">Begin a new chat</button>
   <div class="column">
     <div id="mchat-area" class="mchat-area">
@@ -437,19 +436,21 @@ function cancelMaterialRec(){
 
 function sendMaterialType(type){
     cancelButtons("materialRec")
+    let t=""
     if(type==0){
-        type= "Quiz";
+        t= "Quiz";
     } else if(type==1) {
-        type="Teach";
+        t="Teach";
     } else if(type==2) {
-        type="NotesPDF";
+        t="NotesPDF";
     } else if(type==3) {
-        type="QuizPDF";
+        t="QuizPDF";
     }
 
     const formData = new FormData();
-    formData.append('type', type);
+    formData.append('type', t);
     if(type<2){
+        console.log(type)
         mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please be patient, this might take a while...</strong></small></p>`;
         fetch('/api/generate_material', {
             method: 'POST',
@@ -460,7 +461,7 @@ function sendMaterialType(type){
             console.log('Server Response:', data);
             if(data.message){
                 generalModal()
-                chatArea.innerHTML += `<p class="user-message"><small><strong> User: ${type} me</strong></small></p>`
+                chatArea.innerHTML += `<p class="user-message"><small><strong> User: ${t} me</strong></small></p>`
                 chatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: ${data.message}</strong></small></p>`
             }
         })
@@ -470,6 +471,7 @@ function sendMaterialType(type){
             mainChatArea.innerHTML += materialRecButtons;
         });
     } else {
+        console.log(t)
         mainChatArea.innerHTML += `<p class="bot-message"><small><strong> PALBot: Please be patient, your packet will be downloaded soon...</strong></small></p>`;
         fetch('/api/generate_material', {
             method: 'POST',
@@ -756,7 +758,7 @@ body {
 .mchat-area {
     overflow-y: auto;
     height: 80vh;
-    margin-top: 100px;
+    margin-top: 20px;
 }
 
 .chat-area {

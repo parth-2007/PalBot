@@ -5,6 +5,7 @@ from pdfquery import PDFQuery
 import openai
 from youtube_transcript_api import YouTubeTranscriptApi 
 from fpdf import FPDF
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -17,6 +18,7 @@ history = []
 def chat_bot():
     message = request.json
     message = message.get("message")
+    start_time = datetime.now()
     if(message == "END"):
         history.clear()
         return jsonify({"response": "ENDED CONVERSATION"})
@@ -27,11 +29,15 @@ def chat_bot():
             messages=history
         )
         response = chat_completion.choices[0].message.content
+        end_time = datetime.now()
+        response_time = (end_time - start_time).total_seconds()
+        print(f"Response Time: {response_time} seconds")
         history.append({"role":"assistant","content": response})
         conversation = [(history[i]["content"],history[i+1]["content"]) for i in range(0, len(history)-1, 2)]
         return jsonify({"response": response})
 
 def model(message):
+    start_time = datetime.now()
     if(message == "END"):
         history.clear()
         return "ENDED CONVERSATION"
@@ -42,6 +48,9 @@ def model(message):
             messages=history
         )
         response = chat_completion.choices[0].message.content
+        end_time = datetime.now()
+        response_time = (end_time - start_time).total_seconds()
+        print(f"Response Time: {response_time} seconds")
         history.append({"role":"assistant","content": response})
         conversation = [(history[i]["content"],history[i+1]["content"]) for i in range(0, len(history)-1, 2)]
         return response
